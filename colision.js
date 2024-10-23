@@ -26,12 +26,9 @@ class Circle {
     this.text = getRandomLetter(); // Generar una letra aleatoria
     this.speed = speed;
 
-    // Velocidad aleatoria entre 1 y 5
-    this.dx = (Math.random() * 4 + 1) * (Math.random() < 0.5 ? -1 : 1); // Dirección al azar
-    this.dy = (Math.random() * 4 + 1) * (Math.random() < 0.5 ? -1 : 1);
-    
-    this.isFlashing = false; // Variable para manejar el flasheo
-    this.flashTimeout = null; // Timeout para el flasheo
+    // Velocidad aleatoria entre 1 y 5 hacia arriba
+    this.dy = -1 * (Math.random() * 4 + 1); // Movimiento hacia arriba
+    this.dx = (Math.random() * 2 - 1) * 2; // Pequeño movimiento horizontal aleatorio
   }
 
   draw(context) {
@@ -50,18 +47,19 @@ class Circle {
   update(context) {
     this.draw(context);
 
-    // Actualizar la posición X
+    // Actualizar la posición X (leve movimiento horizontal)
     this.posX += this.dx;
-    // Cambiar la dirección si el círculo llega al borde del canvas en X
+    // Si el círculo se sale del borde izquierdo o derecho, cambia de dirección
     if (this.posX + this.radius > window_width || this.posX - this.radius < 0) {
       this.dx = -this.dx;
     }
 
-    // Actualizar la posición Y
+    // Actualizar la posición Y (solo hacia arriba)
     this.posY += this.dy;
-    // Cambiar la dirección si el círculo llega al borde del canvas en Y
-    if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
-      this.dy = -this.dy;
+
+    // Si el círculo se sale por la parte superior, lo reubica justo debajo del canvas
+    if (this.posY + this.radius < 0) {
+      this.posY = window_height + this.radius; // Reiniciar el círculo al fondo
     }
   }
 
@@ -73,13 +71,7 @@ class Circle {
 
     // Si la distancia entre los dos círculos es menor a la suma de sus radios, hay colisión
     if (distance < this.radius + otherCircle.radius) {
-      // Cambiar color a azul durante la colisión
-      if (!this.isFlashing && !otherCircle.isFlashing) {
-        this.startFlash();
-        otherCircle.startFlash();
-      }
-
-      // Rebotar intercambiando velocidades
+      // Cambiar las velocidades en X y Y para simular el rebote
       const tempDx = this.dx;
       const tempDy = this.dy;
 
@@ -94,29 +86,26 @@ class Circle {
     return false;
   }
 
-  // Función para iniciar el flasheo
-  startFlash() {
-    this.isFlashing = true;
-    this.color = "#0000FF"; // Cambiar a azul
-    clearTimeout(this.flashTimeout); // Limpiar el timeout previo si existía
+  // Detectar si el círculo fue clicado
+  isClicked(mouseX, mouseY) {
+    const distX = mouseX - this.posX;
+    const distY = mouseY - this.posY;
+    const distance = Math.sqrt(distX * distX + distY * distY);
 
-    // Volver al color original después de 200 ms
-    this.flashTimeout = setTimeout(() => {
-      this.color = this.originalColor;
-      this.isFlashing = false;
-    }, 200);
+    // Retorna true si el clic está dentro del radio del círculo
+    return distance <= this.radius;
   }
 }
 
 // Crear un array para almacenar los círculos
 let circles = [];
 
-// Función para generar círculos aleatorios
+// Función para generar círculos aleatorios, ubicados justo debajo del canvas
 function generateCircles(n) {
   for (let i = 0; i < n; i++) {
     let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
     let x = Math.random() * (window_width - radius * 2) + radius;
-    let y = Math.random() * (window_height - radius * 2) + radius;
+    let y = window_height + radius; // Empieza justo debajo del canvas
     let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Color aleatorio
     let speed = Math.random() * 5 + 1; // Velocidad entre 1 y 5
     circles.push(new Circle(x, y, radius, color, speed));
@@ -139,6 +128,15 @@ function animate() {
 
   requestAnimationFrame(animate); // Repetir la animación
 }
+
+// Función para eliminar un círculo al hacer clic
+canvas.addEventListener("click", function(event) {
+  const mouseX = event.clientX;
+  const mouseY = event.clientY;
+
+  // Buscar si el clic fue sobre algún círculo y eliminarlo si es así
+  circles = circles.filter(circle => !circle.isClicked(mouseX, mouseY));
+});
 
 // Generar 10 círculos y comenzar la animación
 generateCircles(10); 
